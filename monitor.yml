@@ -11,7 +11,7 @@
 
   def emit_datadog_metric(name, value)
     task(
-      "emit datadog metric -- #{name}",
+      "emit-datadog-metric-#{name}",
       'tasks/emit_datadog_metric.yml.erb',
       binding
     )
@@ -32,7 +32,7 @@ resources:
     access_token: ((concourse_github_dummy.access_token))
 
 jobs:
-- name: run existing pipeline
+- name: fly-hijack-failing-build
   build_logs_to_retain: 20
   serial: true
   plan:
@@ -41,7 +41,60 @@ jobs:
   - get: fly
     params:
       globs: [fly_linux_amd64]
-  - task: trigger and wait for a build
+  - task: trigger-and-wait-for-a-build
+    config:
+      image_resource:
+        type: docker-image
+        source:
+          repository: ubuntu
+      inputs:
+      - name: fly
+      params:
+        ATC_URL: ((atc_url))
+        TEAM_NAME: ((team_name))
+        PIPELINE_NAME: ((pipeline_name))
+        USERNAME: ((username))
+        PASSWORD: ((password))
+
+      platform: linux
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          #!/bin/bash
+
+          set -e
+
+          pushd fly
+            chmod +x fly_linux_amd64
+            mv fly_linux_amd64 fly
+            export PATH=`pwd`:$PATH
+          popd
+
+          job_name="$PIPELINE_NAME/failing"
+
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci trigger-job -j "$job_name" -w || true
+          timeout 5 fly -t ci hijack \
+            -j "$job_name" \
+            -b $(fly -t ci builds -j "$job_name" | head -1 | awk '{print $3}') \
+            echo Hello World
+
+  on_failure: <%= emit_datadog_metric('concourse.fly_hijack_failing_build', 0) %>
+  on_success: <%= emit_datadog_metric('concourse.fly_hijack_failing_build', 1) %>
+
+- name: run-existing-pipeline
+  build_logs_to_retain: 20
+  serial: true
+  plan:
+  - get: ((interval))
+    trigger: true
+  - get: fly
+    params:
+      globs: [fly_linux_amd64]
+  - task: trigger-and-wait-for-a-build
     config:
       image_resource:
         type: docker-image
@@ -79,13 +132,13 @@ jobs:
   on_failure: <%= emit_datadog_metric('concourse.run_existing_pipeline', 0) %>
   on_success: <%= emit_datadog_metric('concourse.run_existing_pipeline', 1) %>
 
-- name: view public pipeline
+- name: view-public-pipeline
   build_logs_to_retain: 20
   serial: true
   plan:
   - get: ((interval))
     trigger: true
-  - task: check pipeline returns known string
+  - task: check-pipeline-returns-known-string
     timeout: 15s
     config:
       image_resource:
