@@ -23,8 +23,62 @@ resources:
   type: time
   source:
     interval: ((interval))
+- name: fly
+  type: github-release
+  check_every: 1h
+  source:
+    user: concourse
+    repository: concourse
+    access_token: ((concourse_github_dummy.access_token))
 
 jobs:
+- name: run existing pipeline
+  build_logs_to_retain: 20
+  serial: true
+  plan:
+  - get: ((interval))
+    trigger: true
+  - get: fly
+    params:
+      globs: [fly_linux_amd64]
+  - task: trigger and wait for a build
+    config:
+      image_resource:
+        type: docker-image
+        source:
+          repository: ubuntu
+      inputs:
+      - name: fly
+      params:
+        ATC_URL: ((atc_url))
+        TEAM_NAME: ((team_name))
+        PIPELINE_NAME: ((pipeline_name))
+        USERNAME: ((username))
+        PASSWORD: ((password))
+
+      platform: linux
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          #!/bin/bash
+
+          set -e
+
+          pushd fly
+            chmod +x fly_linux_amd64
+            mv fly_linux_amd64 fly
+            export PATH=`pwd`:$PATH
+          popd
+
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          timeout 5 fly -t ci trigger-job -j "$PIPELINE_NAME/simple-job"
+          timeout 60 fly -t ci watch -j "$PIPELINE_NAME/simple-job"
+  on_failure: <%= emit_datadog_metric('concourse.run_existing_pipeline', 0) %>
+  on_success: <%= emit_datadog_metric('concourse.run_existing_pipeline', 1) %>
+
 - name: view public pipeline
   build_logs_to_retain: 20
   serial: true
@@ -54,5 +108,5 @@ jobs:
 
             url=$ATC_URL/teams/$TEAM_NAME/pipelines/$PIPELINE_NAME
             google-chrome-stable --timeout=1000 --no-sandbox --disable-gpu --headless --virtual-time-budget=1000 --dump-dom $url | grep -q simple-job
-    on_failure: <%= emit_datadog_metric('concourse.view_public_pipeline', 0) %>
-    on_success: <%= emit_datadog_metric('concourse.view_public_pipeline', 1) %>
+  on_failure: <%= emit_datadog_metric('concourse.view_public_pipeline', 0) %>
+  on_success: <%= emit_datadog_metric('concourse.view_public_pipeline', 1) %>
