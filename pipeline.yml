@@ -1,5 +1,6 @@
 jobs:
 - name: simple-job
+  build_logs_to_retain: 20
   plan:
   - task: say-hello
     config:
@@ -11,6 +12,7 @@ jobs:
         path: echo
         args: ["Hello, world!"]
 - name: failing
+  build_logs_to_retain: 20
   plan:
   - task: fail
     config:
