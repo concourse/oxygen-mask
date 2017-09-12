@@ -282,5 +282,6 @@ jobs:
           done
 
           fly -t ci watch -j new-pipeline/auto-triggering
+          fly -t ci destroy-pipeline -n -p new-pipeline
   on_failure: <%= emit_datadog_metric('concourse.create_and_run_new_pipeline', 0) %>
   on_success: <%= emit_datadog_metric('concourse.create_and_run_new_pipeline', 1) %>
