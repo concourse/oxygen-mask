@@ -23,6 +23,7 @@ resources:
   type: time
   source:
     interval: ((interval))
+
 - name: fly
   type: github-release
   check_every: 1h
@@ -30,6 +31,11 @@ resources:
     user: concourse
     repository: concourse
     access_token: ((concourse_github_dummy.access_token))
+
+- name: oxygen-mask
+  type: git
+  source:
+    uri: https://github.com/concourse/oxygen-mask
 
 jobs:
 - name: fly-hijack-failing-build
@@ -163,3 +169,118 @@ jobs:
             google-chrome-stable --timeout=1000 --no-sandbox --disable-gpu --headless --virtual-time-budget=1000 --dump-dom $url | grep -q simple-job
   on_failure: <%= emit_datadog_metric('concourse.view_public_pipeline', 0) %>
   on_success: <%= emit_datadog_metric('concourse.view_public_pipeline', 1) %>
+
+- name: view-build-history
+  build_logs_to_retain: 20
+  serial: true
+  plan:
+  - get: ((interval))
+    trigger: true
+  - get: fly
+    params:
+      globs: [fly_linux_amd64]
+  - task: check-build-history-is-viewable
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: justinribeiro/chrome-headless
+
+      inputs:
+      - name: fly
+
+      params:
+        ATC_URL: ((atc_url))
+        TEAM_NAME: ((team_name))
+        PIPELINE_NAME: ((pipeline_name))
+        USERNAME: ((username))
+        PASSWORD: ((password))
+
+      run:
+        user: root
+        path: bash
+        args:
+        - -c
+        - |
+          #!/bin/bash
+
+          set -e -u -x
+
+          pushd fly
+            chmod +x fly_linux_amd64
+            mv fly_linux_amd64 fly
+            export PATH=`pwd`:$PATH
+          popd
+
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+
+          build_number=$(fly -t ci builds -j $PIPELINE_NAME/simple-job | head -n2 | tail -n1 | awk '{print $3}')
+
+          url=$ATC_URL/teams/$TEAM_NAME/pipelines/$PIPELINE_NAME/jobs/simple-job/builds/$build_number
+          google-chrome-stable --no-sandbox --disable-gpu --headless --timeout=1000 --virtual-time-budget=1000 --dump-dom "$url" | grep -q say-hello
+  on_failure: <%= emit_datadog_metric('concourse.view_build_history', 0) %>
+  on_success: <%= emit_datadog_metric('concourse.view_build_history', 1) %>
+
+- name: create-and-run-new-pipeline
+  build_logs_to_retain: 20
+  serial: true
+  plan:
+  - get: ((interval))
+    trigger: true
+  - get: fly
+    params:
+      globs: [fly_linux_amd64]
+  - get: oxygen-mask
+  - task: create-and-run-new-pipeline
+    config:
+      platform: linux
+
+      image_resource:
+        type: docker-image
+        source:
+          repository: ubuntu
+
+      inputs:
+      - name: fly
+      - name: oxygen-mask
+
+      params:
+        ATC_URL: ((atc_url))
+        TEAM_NAME: ((team_name))
+        PIPELINE_NAME: ((pipeline_name))
+        USERNAME: ((username))
+        PASSWORD: ((password))
+
+      run:
+        user: root
+        path: timeout
+        args:
+        - 70
+        - bash
+        - -c
+        - |
+          #!/bin/bash
+
+          set -e -u -x
+
+          pushd fly
+            chmod +x fly_linux_amd64
+            mv fly_linux_amd64 fly
+            export PATH=`pwd`:$PATH
+          popd
+
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci destroy-pipeline -n -p new-pipeline
+          fly -t ci set-pipeline -n -p new-pipeline -c oxygen-mask/pipeline.yml
+          fly -t ci unpause-pipeline -p new-pipeline
+
+          until [ "$(fly -t ci builds -j new-pipeline/auto-triggering | wc -l)" -gt 0 ]; do
+            echo 'waiting for job to trigger...'
+            sleep 1
+          done
+
+          fly -t ci watch -j new-pipeline/auto-triggering
+  on_failure: <%= emit_datadog_metric('concourse.create_and_run_new_pipeline', 0) %>
+  on_success: <%= emit_datadog_metric('concourse.create_and_run_new_pipeline', 1) %>
