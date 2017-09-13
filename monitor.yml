@@ -145,7 +145,7 @@ jobs:
   - get: ((interval))
     trigger: true
   - task: check-pipeline-returns-known-string
-    timeout: 15s
+    timeout: 1m
     config:
       image_resource:
         type: docker-image
@@ -180,6 +180,7 @@ jobs:
     params:
       globs: [fly_linux_amd64]
   - task: check-build-history-is-viewable
+    timeout: 1m
     config:
       platform: linux
 
@@ -276,7 +277,7 @@ jobs:
           fly -t ci set-pipeline -n -p new-pipeline -c oxygen-mask/pipeline.yml
           fly -t ci unpause-pipeline -p new-pipeline
 
-          until [ "$(fly -t ci builds -j new-pipeline/auto-triggering | wc -l)" -gt 0 ]; do
+          until [ "$(fly -t ci builds -j new-pipeline/auto-triggering | grep -v pending | wc -l)" -gt 0 ]; do
             echo 'waiting for job to trigger...'
             sleep 1
           done
