@@ -145,28 +145,14 @@ jobs:
   - get: ((interval))
     trigger: true
   - task: check-pipeline-returns-known-string
-    timeout: 1m
-    config:
-      image_resource:
-        type: docker-image
-        source:
-          repository: justinribeiro/chrome-headless
-      params:
-        ATC_URL: ((atc_url))
-        TEAM_NAME: ((team_name))
-        PIPELINE_NAME: ((pipeline_name))
-
-      platform: linux
-      run:
-        path: bash
-        args:
-          - -c
-          - |
-            #!/bin/bash
-            set -eux
-
-            url=$ATC_URL/teams/$TEAM_NAME/pipelines/$PIPELINE_NAME
-            google-chrome-stable --timeout=1000 --no-sandbox --disable-gpu --headless --virtual-time-budget=1000 --dump-dom $url | grep -q simple-job
+    file: oxygen-mask/ci/run.yml
+    params:
+      TESTS_TO_RUN: spec/public_pipeline_spec.rb
+      ATC_URL: ((atc_url))
+      TEAM_NAME: ((team_name))
+      PIPELINE_NAME: ((pipeline_name))
+      USERNAME: ((username))
+      PASSWORD: ((password))
   on_failure: <%= emit_datadog_metric('concourse.view_public_pipeline', 0) %>
   on_success: <%= emit_datadog_metric('concourse.view_public_pipeline', 1) %>
 
