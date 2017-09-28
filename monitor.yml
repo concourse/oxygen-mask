@@ -181,7 +181,6 @@ jobs:
     params:
       globs: [fly_linux_amd64]
   - task: check-build-history-is-viewable
-    timeout: 1m
     file: oxygen-mask/ci/run.yml
     params:
       TESTS_TO_RUN: spec/build_spec.rb
