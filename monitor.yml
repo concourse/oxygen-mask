@@ -45,8 +45,7 @@ jobs:
   - get: ((interval))
     trigger: true
   - get: fly
-    params:
-      globs: [fly_linux_amd64]
+    params: {globs: [fly_linux_amd64]}
   - task: trigger-and-wait-for-a-build
     config:
       image_resource:
@@ -98,8 +97,7 @@ jobs:
   - get: ((interval))
     trigger: true
   - get: fly
-    params:
-      globs: [fly_linux_amd64]
+    params: {globs: [fly_linux_amd64]}
   - task: trigger-and-wait-for-a-build
     config:
       image_resource:
@@ -146,6 +144,7 @@ jobs:
     trigger: true
   - get: oxygen-mask
   - get: fly
+    params: {globs: [fly_linux_amd64]}
   - task: check-pipeline-returns-known-string
     file: oxygen-mask/ci/run.yml
     params:
