@@ -1,0 +1,13 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+install fly/fly_linux_amd64 /usr/bin/fly
+
+export GEM_HOME=${PWD}/gems
+export BUNDLE_PATH=${PWD}/gems
+
+cd oxygen-mask/
+bundle
+bundle exec rspec "$@" $TESTS_TO_RUN

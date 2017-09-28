@@ -1,0 +1,25 @@
+---
+platform: linux
+
+image_resource:
+  type: docker-image
+  source: {repository: concourse/wats-ci}
+
+params:
+  ATC_URL: https://wings.concourse.ci
+  TEAM_NAME: monitoring
+  PIPELINE_NAME: monitoring
+  USERNAME:
+  PASSWORD:
+  TESTS_TO_RUN:
+
+inputs:
+- name: oxygen-mask
+- name: fly
+
+caches:
+- path: gems
+- path: concourse/pkg
+
+run:
+  path: oxygen-mask/ci/run

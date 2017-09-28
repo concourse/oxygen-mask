@@ -176,51 +176,20 @@ jobs:
   plan:
   - get: ((interval))
     trigger: true
+  - get: oxygen-mask
   - get: fly
     params:
       globs: [fly_linux_amd64]
   - task: check-build-history-is-viewable
     timeout: 1m
-    config:
-      platform: linux
-
-      image_resource:
-        type: docker-image
-        source:
-          repository: justinribeiro/chrome-headless
-
-      inputs:
-      - name: fly
-
-      params:
-        ATC_URL: ((atc_url))
-        TEAM_NAME: ((team_name))
-        PIPELINE_NAME: ((pipeline_name))
-        USERNAME: ((username))
-        PASSWORD: ((password))
-
-      run:
-        user: root
-        path: bash
-        args:
-        - -c
-        - |
-          #!/bin/bash
-
-          set -e -u -x
-
-          pushd fly
-            chmod +x fly_linux_amd64
-            mv fly_linux_amd64 fly
-            export PATH=`pwd`:$PATH
-          popd
-
-          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
-
-          build_number=$(fly -t ci builds -j $PIPELINE_NAME/simple-job | head -n2 | tail -n1 | awk '{print $3}')
-
-          url=$ATC_URL/teams/$TEAM_NAME/pipelines/$PIPELINE_NAME/jobs/simple-job/builds/$build_number
-          google-chrome-stable --no-sandbox --disable-gpu --headless --timeout=1000 --virtual-time-budget=1000 --dump-dom "$url" | grep -q say-hello
+    file: oxygen-mask/ci/run.yml
+    params:
+      TESTS_TO_RUN: spec/build_spec.rb
+      ATC_URL: ((atc_url))
+      TEAM_NAME: ((team_name))
+      PIPELINE_NAME: ((pipeline_name))
+      USERNAME: ((username))
+      PASSWORD: ((password))
   on_failure: <%= emit_datadog_metric('concourse.view_build_history', 0) %>
   on_success: <%= emit_datadog_metric('concourse.view_build_history', 1) %>
 
