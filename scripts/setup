@@ -28,4 +28,3 @@ fly -t ci set-pipeline -n -p "$PIPELINE_NAME"-stats -c <(erb monitor.yml) \
   -v pipeline_name="$PIPELINE_NAME" \
   -v team_name=monitoring \
   -v username="$USERNAME"
-fly -t ci unpause-pipeline -p "$PIPELINE_NAME"-stats
