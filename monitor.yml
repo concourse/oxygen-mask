@@ -144,6 +144,7 @@ jobs:
   plan:
   - get: ((interval))
     trigger: true
+  - get: oxygen-mask
   - task: check-pipeline-returns-known-string
     file: oxygen-mask/ci/run.yml
     params:
