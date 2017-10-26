@@ -81,6 +81,7 @@ jobs:
           job_name="$PIPELINE_NAME/failing"
 
           fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci sync
           fly -t ci trigger-job -j "$job_name" -w || true
           timeout 5 fly -t ci hijack \
             -j "$job_name" \
@@ -131,6 +132,7 @@ jobs:
           popd
 
           fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci sync
           timeout 5 fly -t ci trigger-job -j "$PIPELINE_NAME/simple-job"
           timeout 60 fly -t ci watch -j "$PIPELINE_NAME/simple-job"
   on_failure: <%= emit_datadog_metric('concourse.run_existing_pipeline', 0) %>
@@ -228,6 +230,7 @@ jobs:
           popd
 
           fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci sync
           fly -t ci destroy-pipeline -n -p new-pipeline
           fly -t ci set-pipeline -n -p new-pipeline -c oxygen-mask/pipeline.yml
           fly -t ci unpause-pipeline -p new-pipeline

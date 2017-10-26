@@ -4,6 +4,8 @@
 set -e
 
 install fly/fly_linux_amd64 /usr/bin/fly
+fly -t ci login -c "$ATC_URL" -u "$USERNAME" -p "$PASSWORD"
+fly -t ci sync
 
 export GEM_HOME=${PWD}/gems
 export BUNDLE_PATH=${PWD}/gems
