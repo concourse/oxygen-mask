@@ -1,30 +1,74 @@
 #!/bin/bash
 
-set -eux
-
-DATADOG_API_KEY="${1:-}"
-USERNAME="${2:-}"
-PASSWORD="${3:-}"
-PIPELINE_NAME="monitoring"
+set -eu
 
 function usage() {
-  echo "usage: $0 <datadog_api_key> <username> <password>" >&2
+  echo "usage: $0 -t <teamname> -u <username> -p <password> -d <datadog_api_key> -g <github_access_token>" >&2
   exit 1
 }
+
+DATADOG_API_KEY=""
+USERNAME=""
+PASSWORD=""
+ACCESS_TOKEN=""
+TEAMNAME=""
+
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -t|--team-name)
+    TEAMNAME="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -u|--username)
+    USERNAME="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -p|--password)
+    PASSWORD="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -d|--datadog-api-key)
+    DATADOG_API_KEY="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -g|--github-access-token)
+    ACCESS_TOKEN="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    *)    # unknown option
+    shift
+    ;;
+esac
+done
+
+PIPELINE_NAME="monitoring"
+
 
 [ -n "$DATADOG_API_KEY" ] || usage
 [ -n "$USERNAME" ] || usage
 [ -n "$PASSWORD" ] || usage
+[ -n "$ACCESS_TOKEN" ] || usage
+[ -n "$TEAMNAME" ] || usage
 
-fly -t wings-monitoring set-pipeline -n -p "$PIPELINE_NAME" -c pipeline.yml
-fly -t wings-monitoring unpause-pipeline -p "$PIPELINE_NAME"
-fly -t wings-monitoring expose-pipeline -p "$PIPELINE_NAME"
+set -x
+fly -t $TEAMNAME set-pipeline -n -p "$PIPELINE_NAME" -c pipeline.yml
+fly -t $TEAMNAME unpause-pipeline -p "$PIPELINE_NAME"
+fly -t $TEAMNAME expose-pipeline -p "$PIPELINE_NAME"
 
-fly -t ci set-pipeline -n -p "$PIPELINE_NAME"-stats -c <(erb monitor.yml) \
-  -v atc_url="$(fly targets | grep "wings-monitoring" | head -n 1 | awk '{print $2}')" \
+fly -t $TEAMNAME set-pipeline -n -p "$PIPELINE_NAME"-stats -c <(erb monitor.yml) \
+  -v atc_url="$(fly targets | grep "$TEAMNAME"  | head -n 1 | awk '{print $2}')" \
   -v datadog_api_key="$DATADOG_API_KEY" \
   -v interval=30s \
   -v password="$PASSWORD" \
   -v pipeline_name="$PIPELINE_NAME" \
-  -v team_name=monitoring \
-  -v username="$USERNAME"
+  -v team_name=$TEAMNAME \
+  -v username="$USERNAME" \
+  -v access_token="$ACCESS_TOKEN"
