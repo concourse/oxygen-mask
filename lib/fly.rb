@@ -5,7 +5,7 @@ module Fly
   class FlyError < RuntimeError; end
 
   def fly(command)
-    run "fly -t wings-monitoring #{command}"
+    run "fly -t #{TARGET} #{command}"
   end
 
   def fly_login
@@ -13,7 +13,7 @@ module Fly
   end
 
   def fly_fail(command)
-    run "fly -t wings-monitoring #{command}"
+    run "fly -t #{TARGET} #{command}"
   rescue FlyError
     nil
   else
@@ -21,7 +21,7 @@ module Fly
   end
 
   def fly_table(command)
-    output, _ = run "fly --print-table-headers -t wings-monitoring #{command}"
+    output, _ = run "fly --print-table-headers -t #{TARGET} #{command}"
 
     rows = []
     headers = nil
@@ -44,7 +44,7 @@ module Fly
   end
 
   def fly_with_input(command, input)
-    run "echo '#{input}' | fly -t wings-monitoring #{command}"
+    run "echo '#{input}' | fly -t #{TARGET} #{command}"
   end
 
   private

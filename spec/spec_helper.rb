@@ -4,6 +4,7 @@ require 'fly'
 require 'dash'
 
 ATC_URL = ENV.fetch('ATC_URL', 'https://wings.concourse.ci').freeze
+TARGET = ENV.fetch('TARGET', 'wings-monitoring').freeze
 TEAM_NAME = ENV.fetch('TEAM_NAME', 'monitoring').freeze
 PIPELINE_NAME = ENV.fetch('PIPELINE_NAME', 'monitoring').freeze
 USERNAME = ENV.fetch('USERNAME', '').freeze
