@@ -1,74 +1,69 @@
 #!/bin/bash
 
-set -eu
+set -e
 
 function usage() {
-  echo "usage: $0 -t <teamname> -u <username> -p <password> -d <datadog_api_key> -g <github_access_token>" >&2
+  {
+    echo "usage: $0"
+    echo "  -t: target of concourse being monitored"
+    echo "  -x: target of concourse doing the monitoring"
+    echo "  -n: team name user for target above"
+    echo "  -u&-p: basic auth username and password for the team above"
+    echo "  -d: datadog api key to emit metrics to"
+    echo "  -g: github access token to not be rate limited for getting fly CLI"
+    echo "  -f: delete the previous pipelines, this help clean up build history"
+  } >&2
   exit 1
 }
 
-DATADOG_API_KEY=""
-USERNAME=""
-PASSWORD=""
-ACCESS_TOKEN=""
-TEAMNAME=""
-
-while [[ $# -gt 0 ]]
-do
-key="$1"
-
-case $key in
-    -t|--team-name)
-    TEAMNAME="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -u|--username)
-    USERNAME="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -p|--password)
-    PASSWORD="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -d|--datadog-api-key)
-    DATADOG_API_KEY="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    -g|--github-access-token)
-    ACCESS_TOKEN="$2"
-    shift # past argument
-    shift # past value
-    ;;
-    *)    # unknown option
-    shift
-    ;;
-esac
+while getopts ":fx:n:t:u:p:d:g:" opt; do
+  case $opt in
+    n) TEAMNAME="$OPTARG";;
+    t) MONITORED_TARGET="$OPTARG";;
+    x) MONITORING_TARGET="$OPTARG";;
+    u) USERNAME="$OPTARG";;
+    p) PASSWORD="$OPTARG";;
+    d) DATADOG_API_KEY="$OPTARG";;
+    g) ACCESS_TOKEN="$OPTARG";;
+    f) DELETE_THE_PIPELINES="true"
+  esac
 done
 
 PIPELINE_NAME="monitoring"
 
-
-[ -n "$DATADOG_API_KEY" ] || usage
 [ -n "$USERNAME" ] || usage
 [ -n "$PASSWORD" ] || usage
-[ -n "$ACCESS_TOKEN" ] || usage
-[ -n "$TEAMNAME" ] || usage
+[ -n "$MONITORING_TARGET" ] || usage
+[ -n "$MONITORED_TARGET" ] || usage
+
+tmpfile=$(mktemp /tmp/oxygen-mask.XXXXXX)
+erb monitor.yml > $tmpfile
 
 set -x
-fly -t $TEAMNAME set-pipeline -n -p "$PIPELINE_NAME" -c pipeline.yml
-fly -t $TEAMNAME unpause-pipeline -p "$PIPELINE_NAME"
-fly -t $TEAMNAME expose-pipeline -p "$PIPELINE_NAME"
+if [ -n "$DELETE_THE_PIPELINES" ]; then
+  fly -t "$MONITORED_TARGET" destroy-pipeline -n -p "$PIPELINE_NAME"
+fi
+fly -t "$MONITORED_TARGET" set-pipeline -n -p "$PIPELINE_NAME" -c pipeline.yml
+fly -t "$MONITORED_TARGET" unpause-pipeline -p "$PIPELINE_NAME"
+fly -t "$MONITORED_TARGET" expose-pipeline -p "$PIPELINE_NAME"
 
-fly -t $TEAMNAME set-pipeline -n -p "$PIPELINE_NAME"-stats -c <(erb monitor.yml) \
-  -v atc_url="$(fly targets | grep "$TEAMNAME"  | head -n 1 | awk '{print $2}')" \
-  -v datadog_api_key="$DATADOG_API_KEY" \
+cmd=(fly -t "$MONITORING_TARGET" set-pipeline -n -p "$PIPELINE_NAME"-stats -c $tmpfile \
+  -v atc_url="$(fly targets | grep "$MONITORED_TARGET"  | head -n 1 | awk '{print $2}')" \
   -v interval=30s \
   -v password="$PASSWORD" \
   -v pipeline_name="$PIPELINE_NAME" \
-  -v team_name=$TEAMNAME \
-  -v username="$USERNAME" \
-  -v access_token="$ACCESS_TOKEN"
+  -v team_name="$TEAMNAME" \
+  -v username="$USERNAME")
+
+if [ -n "$ACCESS_TOKEN" ]; then
+  cmd+=(-v github_access_token="$ACCESS_TOKEN")
+fi
+if [ -n "$DATADOG_API_KEY" ]; then
+  cmd+=(-v datadog_api_key="$DATADOG_API_KEY")
+fi
+
+if [ -n "$DELETE_THE_PIPELINES" ]; then
+  fly -t "$MONITORING_TARGET" destroy-pipeline -n -p "$PIPELINE_NAME"-stats
+fi
+"${cmd[@]}"
+fly -t "$MONITORING_TARGET" unpause-pipeline -p "$PIPELINE_NAME"-stats
