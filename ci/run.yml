@@ -6,7 +6,7 @@ image_resource:
   source: {repository: concourse/wats-ci}
 
 params:
-  ATC_URL: https://wings.concourse.ci
+  ATC_URL: https://wings.concourse-ci.org
   TEAM_NAME: monitoring
   PIPELINE_NAME: monitoring
   USERNAME:
