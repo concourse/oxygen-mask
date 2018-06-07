@@ -123,7 +123,7 @@ jobs:
         - |
           #!/bin/bash
 
-          set -e
+          set -euo pipefail
 
           pushd fly
             chmod +x fly_linux_amd64
@@ -133,8 +133,8 @@ jobs:
 
           fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
           fly -t ci sync
-          timeout 5 fly -t ci trigger-job -j "$PIPELINE_NAME/simple-job"
-          timeout 60 fly -t ci watch -j "$PIPELINE_NAME/simple-job"
+          build_number=$(timeout 5 fly -t ci trigger-job -j "$PIPELINE_NAME/simple-job" | cut -d'#' -f 2)
+          timeout 60 fly -t ci watch -j "$PIPELINE_NAME/simple-job" -b "$build_number"
   on_failure: <%= emit_datadog_metric('concourse.run_existing_pipeline', 0) %>
   on_success: <%= emit_datadog_metric('concourse.run_existing_pipeline', 1) %>
 
