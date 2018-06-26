@@ -4,7 +4,14 @@
 set -e
 
 install fly/fly_linux_amd64 /usr/bin/fly
-fly -t ci login -c "$ATC_URL" -n "$TEAM_NAME" -u "$USERNAME" -p "$PASSWORD"
+
+fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k || {
+    curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" --output /tmp/fly
+
+    install /tmp/fly /usr/bin/fly
+
+    fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+}
 fly -t ci sync
 
 export GEM_HOME=${PWD}/gems

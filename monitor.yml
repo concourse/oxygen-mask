@@ -51,7 +51,7 @@ jobs:
       image_resource:
         type: docker-image
         source:
-          repository: ubuntu
+          repository: concourse/atc-ci
       inputs:
       - name: fly
       params:
@@ -72,15 +72,17 @@ jobs:
 
           set -e
 
-          pushd fly
-            chmod +x fly_linux_amd64
-            mv fly_linux_amd64 fly
-            export PATH=`pwd`:$PATH
-          popd
+          install fly/fly_linux_amd64 /usr/bin/fly
 
           job_name="$PIPELINE_NAME/failing"
 
-          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k || {
+              curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" --output /tmp/fly
+
+              install /tmp/fly /usr/bin/fly
+
+              fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          }
           fly -t ci sync
           fly -t ci trigger-job -j "$job_name" -w || true
           timeout 5 fly -t ci hijack \
@@ -104,7 +106,7 @@ jobs:
       image_resource:
         type: docker-image
         source:
-          repository: ubuntu
+          repository: concourse/atc-ci
       inputs:
       - name: fly
       params:
@@ -125,13 +127,15 @@ jobs:
 
           set -euo pipefail
 
-          pushd fly
-            chmod +x fly_linux_amd64
-            mv fly_linux_amd64 fly
-            export PATH=`pwd`:$PATH
-          popd
+          install fly/fly_linux_amd64 /usr/bin/fly
 
-          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k || {
+              curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" --output /tmp/fly
+
+              install /tmp/fly /usr/bin/fly
+
+              fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          }
           fly -t ci sync
           build_number=$(timeout 5 fly -t ci trigger-job -j "$PIPELINE_NAME/simple-job" | cut -d'#' -f 2)
           timeout 60 fly -t ci watch -j "$PIPELINE_NAME/simple-job" -b "$build_number"
@@ -198,7 +202,7 @@ jobs:
       image_resource:
         type: docker-image
         source:
-          repository: ubuntu
+          repository: concourse/atc-ci
 
       inputs:
       - name: fly
@@ -223,13 +227,15 @@ jobs:
 
           set -e -u -x
 
-          pushd fly
-            chmod +x fly_linux_amd64
-            mv fly_linux_amd64 fly
-            export PATH=`pwd`:$PATH
-          popd
+          install fly/fly_linux_amd64 /usr/bin/fly
 
-          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k || {
+              curl "$ATC_URL/api/v1/cli?arch=amd64&platform=linux" --output /tmp/fly
+
+              install /tmp/fly /usr/bin/fly
+
+              fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k
+          }
           fly -t ci sync
           fly -t ci destroy-pipeline -n -p new-pipeline
           fly -t ci set-pipeline -n -p new-pipeline -c oxygen-mask/pipeline.yml
