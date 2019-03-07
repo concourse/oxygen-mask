@@ -3,7 +3,7 @@
 
 set -e
 
-tar -zxf fly/fly.*-linux-amd64.tgz -C fly/
+tar -zxf fly/fly-*-linux-amd64.tgz -C fly/
 install fly/fly /usr/bin/fly
 
 fly -t ci login -c $ATC_URL -n $TEAM_NAME -u $USERNAME -p $PASSWORD -k || {
