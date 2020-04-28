@@ -246,7 +246,7 @@ jobs:
           }
           fly -t ci sync
           fly -t ci destroy-pipeline -n -p new-pipeline
-          fly -t ci set-pipeline -n -p new-pipeline -c oxygen-mask/pipeline.yml
+          fly -t ci set-pipeline -n -p new-pipeline -c oxygen-mask/pipeline.yml -v param="create-and-run-new-pipeline"
           fly -t ci unpause-pipeline -p new-pipeline
 
           until [ "$(fly -t ci builds -j new-pipeline/auto-triggering | grep -v pending | wc -l)" -gt 0 ]; do

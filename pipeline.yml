@@ -1,7 +1,9 @@
 resources:
 - name: time-trigger
   type: time
-  source: {interval: 24h}
+  source:
+    interval: 24h
+    unique: ((param))
 
 jobs:
 - name: simple-job

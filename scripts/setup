@@ -43,7 +43,7 @@ set -x
 if [ -n "$DELETE_THE_PIPELINES" ]; then
   fly -t "$MONITORED_TARGET" destroy-pipeline -n -p "$PIPELINE_NAME"
 fi
-fly -t "$MONITORED_TARGET" set-pipeline -n -p "$PIPELINE_NAME" -c pipeline.yml
+fly -t "$MONITORED_TARGET" set-pipeline -n -p "$PIPELINE_NAME" -c pipeline.yml -v param="$PIPELINE_NAME"
 fly -t "$MONITORED_TARGET" unpause-pipeline -p "$PIPELINE_NAME"
 fly -t "$MONITORED_TARGET" expose-pipeline -p "$PIPELINE_NAME"
 
