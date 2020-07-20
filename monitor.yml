@@ -226,7 +226,7 @@ jobs:
         user: root
         path: timeout
         args:
-        - 70
+        - "70"
         - bash
         - -c
         - |
