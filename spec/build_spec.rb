@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 describe 'build history', type: :feature do
   include Fly
 
