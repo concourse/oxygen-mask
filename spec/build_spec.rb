@@ -7,8 +7,8 @@ describe 'build history', type: :feature do
 
   it 'can be viewed within 1 second' do
     builds = fly_table("builds -j #{PIPELINE_NAME}/simple-job")
-    build_number = builds[1]["build"]
-    visit dash_route("/teams/#{TEAM_NAME}/pipelines/#{PIPELINE_NAME}/jobs/simple-job/builds/#{build_number}")
+    build_id = builds[1]["id"]
+    visit dash_route("/builds/#{build_id}")
     expect(page).to have_content("say-hello", wait: 1)
   end
 end
