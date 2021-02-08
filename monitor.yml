@@ -93,6 +93,7 @@ jobs:
           fly -t ci trigger-job -j "$job_name" -w || true
           timeout 5 fly -t ci hijack \
             -b $(fly -t ci builds -j "$job_name" | head -1 | awk '{print $1}') \
+            -s fail \
             echo Hello World
 
   on_failure: <%= emit_datadog_metric('concourse.fly_hijack_failing_build', 0) %>
