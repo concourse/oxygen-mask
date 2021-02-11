@@ -10,13 +10,14 @@ function usage() {
     echo "  -n: team name user for target above"
     echo "  -u&-p: basic auth username and password for the team above"
     echo "  -d: datadog api key to emit metrics to"
+    echo "  -w: wavefront api token to emit metrics to"
     echo "  -g: github access token to not be rate limited for getting fly CLI"
     echo "  -f: delete the previous pipelines, this help clean up build history"
   } >&2
   exit 1
 }
 
-while getopts ":fx:n:t:u:p:d:g:" opt; do
+while getopts ":fx:n:t:u:p:d:w:g:" opt; do
   case $opt in
     n) TEAMNAME="$OPTARG";;
     t) MONITORED_TARGET="$OPTARG";;
@@ -24,6 +25,7 @@ while getopts ":fx:n:t:u:p:d:g:" opt; do
     u) USERNAME="$OPTARG";;
     p) PASSWORD="$OPTARG";;
     d) DATADOG_API_KEY="$OPTARG";;
+    w) WAVEFRONT_API_TOKEN="$OPTARG";;
     g) ACCESS_TOKEN="$OPTARG";;
     f) DELETE_THE_PIPELINES="true"
   esac
@@ -59,7 +61,10 @@ if [ -n "$ACCESS_TOKEN" ]; then
   cmd+=(-v github_access_token="$ACCESS_TOKEN")
 fi
 if [ -n "$DATADOG_API_KEY" ]; then
-  cmd+=(-v datadog_api_key="$DATADOG_API_KEY")
+  cmd+=(-v metrics_store=datadog -v datadog_api_key="$DATADOG_API_KEY")
+fi
+if [ -n "$WAVEFRONT_API_TOKEN" ]; then
+  cmd+=(-v metrics_store=wavefront -v wavefront_api_token="$WAVEFRONT_API_TOKEN")
 fi
 
 if [ -n "$DELETE_THE_PIPELINES" ]; then

@@ -9,10 +9,10 @@
     }.to_json
   end
 
-  def emit_datadog_metric(name, value)
+  def emit_metric(name, value)
     task(
-      "emit-datadog-metric-#{name}",
-      'tasks/emit_datadog_metric.yml.erb',
+      "emit-((metrics_store))-metric-#{name}",
+      'tasks/emit_((metrics_store))_metric.yml.erb',
       binding
     )
   end
@@ -96,8 +96,8 @@ jobs:
             -s fail \
             echo Hello World
 
-  on_failure: <%= emit_datadog_metric('concourse.fly_hijack_failing_build', 0) %>
-  on_success: <%= emit_datadog_metric('concourse.fly_hijack_failing_build', 1) %>
+  on_failure: <%= emit_metric('concourse.fly_hijack_failing_build', 0) %>
+  on_success: <%= emit_metric('concourse.fly_hijack_failing_build', 1) %>
 
 - name: run-existing-pipeline
   build_logs_to_retain: 20
@@ -146,8 +146,8 @@ jobs:
           fly -t ci sync
           build_number=$(timeout 5 fly -t ci trigger-job -j "$PIPELINE_NAME/simple-job" | cut -d'#' -f 2)
           timeout 60 fly -t ci watch -j "$PIPELINE_NAME/simple-job" -b "$build_number"
-  on_failure: <%= emit_datadog_metric('concourse.run_existing_pipeline', 0) %>
-  on_success: <%= emit_datadog_metric('concourse.run_existing_pipeline', 1) %>
+  on_failure: <%= emit_metric('concourse.run_existing_pipeline', 0) %>
+  on_success: <%= emit_metric('concourse.run_existing_pipeline', 1) %>
 
 - name: view-public-pipeline
   build_logs_to_retain: 20
@@ -167,8 +167,8 @@ jobs:
       PIPELINE_NAME: ((pipeline_name))
       USERNAME: ((username))
       PASSWORD: ((password))
-  on_failure: <%= emit_datadog_metric('concourse.view_public_pipeline', 0) %>
-  on_success: <%= emit_datadog_metric('concourse.view_public_pipeline', 1) %>
+  on_failure: <%= emit_metric('concourse.view_public_pipeline', 0) %>
+  on_success: <%= emit_metric('concourse.view_public_pipeline', 1) %>
 
 - name: view-build-history
   build_logs_to_retain: 20
@@ -189,8 +189,8 @@ jobs:
       PIPELINE_NAME: ((pipeline_name))
       USERNAME: ((username))
       PASSWORD: ((password))
-  on_failure: <%= emit_datadog_metric('concourse.view_build_history', 0) %>
-  on_success: <%= emit_datadog_metric('concourse.view_build_history', 1) %>
+  on_failure: <%= emit_metric('concourse.view_build_history', 0) %>
+  on_success: <%= emit_metric('concourse.view_build_history', 1) %>
 
 - name: create-and-run-new-pipeline
   build_logs_to_retain: 20
@@ -256,5 +256,5 @@ jobs:
 
           fly -t ci watch -j new-pipeline/auto-triggering
           fly -t ci destroy-pipeline -n -p new-pipeline
-  on_failure: <%= emit_datadog_metric('concourse.create_and_run_new_pipeline', 0) %>
-  on_success: <%= emit_datadog_metric('concourse.create_and_run_new_pipeline', 1) %>
+  on_failure: <%= emit_metric('concourse.create_and_run_new_pipeline', 0) %>
+  on_success: <%= emit_metric('concourse.create_and_run_new_pipeline', 1) %>

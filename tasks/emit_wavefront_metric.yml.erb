@@ -1,0 +1,24 @@
+---
+image_resource:
+  type: registry-image
+  source:
+    repository: buildpack-deps
+    tag: focal
+
+params:
+  WAVEFRONT_API_TOKEN: ((wavefront_api_token))
+  ATC_URL: ((atc_url))
+
+platform: linux
+
+run:
+  path: bash
+  args:
+    - -c
+    - |
+      curl \
+        -X POST \
+        --header "Authorization: Bearer $WAVEFRONT_API_TOKEN" \
+        -d "<%= "#{name} #{value} source=ci.concourse-ci.org atc_url=$ATC_URL" %>" \
+        "https://vmware.wavefront.com/report?f=wavefront"
+
