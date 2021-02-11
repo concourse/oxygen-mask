@@ -33,13 +33,18 @@ done
 
 PIPELINE_NAME="monitoring"
 
+metrics_store=datadog
+if [ -n "$WAVEFRONT_API_TOKEN" ]; then
+  metrics_store=wavefront
+fi
+
 [ -n "$USERNAME" ] || usage
 [ -n "$PASSWORD" ] || usage
 [ -n "$MONITORING_TARGET" ] || usage
 [ -n "$MONITORED_TARGET" ] || usage
 
 tmpfile=$(mktemp /tmp/oxygen-mask.XXXXXX)
-erb monitor.yml > $tmpfile
+erb metrics_store=$metrics_store monitor.yml > $tmpfile
 
 set -x
 if [ -n "$DELETE_THE_PIPELINES" ]; then
@@ -61,10 +66,10 @@ if [ -n "$ACCESS_TOKEN" ]; then
   cmd+=(-v github_access_token="$ACCESS_TOKEN")
 fi
 if [ -n "$DATADOG_API_KEY" ]; then
-  cmd+=(-v metrics_store=datadog -v datadog_api_key="$DATADOG_API_KEY")
+  cmd+=(-v datadog_api_key="$DATADOG_API_KEY")
 fi
 if [ -n "$WAVEFRONT_API_TOKEN" ]; then
-  cmd+=(-v metrics_store=wavefront -v wavefront_api_token="$WAVEFRONT_API_TOKEN")
+  cmd+=(-v wavefront_api_token="$WAVEFRONT_API_TOKEN")
 fi
 
 if [ -n "$DELETE_THE_PIPELINES" ]; then

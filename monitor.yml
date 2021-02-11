@@ -2,6 +2,8 @@
   require 'json'
   require 'yaml'
 
+  METRICS_STORE = metrics_store
+
   def task(name, file, binding)
     {
       task: name,
@@ -11,8 +13,8 @@
 
   def emit_metric(name, value)
     task(
-      "emit-((metrics_store))-metric-#{name}",
-      'tasks/emit_((metrics_store))_metric.yml.erb',
+      "emit-#{METRICS_STORE}-metric-#{name}",
+      "tasks/emit_#{METRICS_STORE}_metric.yml.erb",
       binding
     )
   end
